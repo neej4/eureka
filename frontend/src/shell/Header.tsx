@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import type { TabName } from "./types";
+import { Icon } from "../components/Icon";
 
 const TABS: Array<{ name: TabName; label: string }> = [
-  { name: "ideas", label: "Ideas" },
+  { name: "research", label: "Research" },
   { name: "map", label: "Knowledge Map" },
-  { name: "recent", label: "Recent" },
+  { name: "chat", label: "Chat" },
   { name: "settings", label: "Settings" },
 ];
 
@@ -31,15 +32,17 @@ export function Header(props: {
       <div className="mx-auto flex h-full max-w-[1400px] items-center justify-between gap-4 px-4">
         <div className="flex min-w-0 items-center gap-3">
           <img
-            src="/static/logo_purewhite.png"
-            width={36}
-            height={36}
-            alt=""
+            src="/logo.png"
+            alt="EUREKA"
+            className="h-[18px] w-auto max-w-[26px] shrink-0 object-contain"
             onError={(e) => {
               e.currentTarget.style.display = "none";
             }}
           />
-          <div className="truncate text-[20px] font-bold tracking-[1px] text-[var(--active)]">
+          <div
+            className="truncate text-[18px] font-semibold uppercase tracking-[0.28em] text-[var(--text)]"
+            style={{ fontFamily: "var(--font-brand)" }}
+          >
             EUREKA
           </div>
         </div>
@@ -76,8 +79,9 @@ export function Header(props: {
           <button
             type="button"
             onClick={props.onSetup}
-            className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-semibold text-[var(--text)] hover:bg-[var(--hover)]"
+            className="inline-flex items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-semibold text-[var(--text)] hover:bg-[var(--hover)]"
           >
+            <Icon name="ui-settings" className="h-4 w-4 text-[var(--muted)]" />
             Setup
           </button>
           <div

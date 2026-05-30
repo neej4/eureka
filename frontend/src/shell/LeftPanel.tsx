@@ -2,7 +2,7 @@ import type { AgentStatus } from "../../../shared/types";
 import { PipelineStatus } from "../components/PipelineStatus";
 
 export type LogLine = {
-  level: "info" | "ok" | "warn" | "err";
+  level: "insight" | "info" | "ok" | "warn" | "err";
   text: string;
 };
 
@@ -15,48 +15,6 @@ export function LeftPanel(props: { logs: LogLine[]; agents: AgentStatus[] }) {
   return (
     <aside className="left h-full overflow-hidden border-r border-[var(--border)] bg-[var(--bg)]">
       <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-        <section>
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-            Sources to Scan
-          </div>
-          <div id="catsContainer" className="flex flex-col gap-2">
-            <details className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-3" open>
-              <summary className="cursor-pointer text-sm font-semibold text-[var(--text)]">
-                Computer Science
-              </summary>
-              <div className="mt-3 flex flex-col gap-2 text-xs text-[var(--text)]">
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" defaultChecked />
-                  <span>LLM Agents</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" />
-                  <span>RAG Evaluation</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" />
-                  <span>Graph Reasoning</span>
-                </label>
-              </div>
-            </details>
-            <details className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-3">
-              <summary className="cursor-pointer text-sm font-semibold text-[var(--text)]">
-                Bio / Health
-              </summary>
-              <div className="mt-3 flex flex-col gap-2 text-xs text-[var(--text)]">
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" />
-                  <span>Clinical NLP</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" />
-                  <span>Drug Discovery</span>
-                </label>
-              </div>
-            </details>
-          </div>
-        </section>
-
         <section>
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Pipeline</div>
           <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-3">
@@ -75,7 +33,7 @@ export function LeftPanel(props: { logs: LogLine[]; agents: AgentStatus[] }) {
 
         <section className="flex min-h-[260px] flex-1 flex-col">
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-            Console
+            Reasoning Engine
           </div>
           <div
             id="logBox"
@@ -89,6 +47,7 @@ export function LeftPanel(props: { logs: LogLine[]; agents: AgentStatus[] }) {
                   key={idx}
                   className={[
                     l.level,
+                    l.level === "insight" ? "text-[var(--text)]" : "",
                     l.level === "info" ? "text-[var(--muted)]" : "",
                     l.level === "ok" ? "text-[var(--active)]" : "",
                     l.level === "warn" ? "italic text-[var(--text)]" : "",

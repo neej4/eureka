@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Idea } from "../../shared/types";
-import { IdeaDetail } from "./components/IdeaDetail";
-import { IdeaList } from "./components/IdeaList";
-import { KnowledgeMapGraph } from "./components/KnowledgeMapGraph";
+import { ErrorState } from "./components/ErrorState";
+import { ChatPanel } from "./components/ChatPanel";
+import { IdeaDetailModal } from "./components/IdeaDetailModal";
+import { IdeaGrid } from "./components/IdeaGrid";
+import { IdeaSkeletonList, PanelSkeleton } from "./components/IdeaSkeleton";
+import { LandingScreen } from "./components/LandingScreen";
+import { KnowledgeMapObsidian } from "./components/KnowledgeMapObsidian";
+import { ProfileModal, type ProfileData } from "./components/ProfileModal";
 import { ROIPanel } from "./components/ROIPanel";
 import { Settings } from "./components/Settings";
 import { ToastViewport, type ToastItem, type ToastType } from "./components/Toast";
@@ -16,21 +21,40 @@ import type { TabName } from "./shell/types";
 function App() {
   const pipeline = usePipeline();
   const [selectedIdeaId, setSelectedIdeaId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabName>("ideas");
+  const [ideaModalOpen, setIdeaModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabName>("research");
   const [toasts, setToasts] = useState<ToastItem[]>([]);
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [language, setLanguage] = useState<"en" | "id">("en");
-  const [maxIdeas, setMaxIdeas] = useState(10);
-  const [ideaSearch, setIdeaSearch] = useState("");
-  const [levelFilter, setLevelFilter] = useState("all");
-  const [compareMode, setCompareMode] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profile, setProfile] = useState<ProfileData>({
+    mode: "academic",
+    goal: "any",
+    approach: "any",
+    context: "",
+  });
 
   useEffect(() => {
     if (!pipeline.result) return;
     if (pipeline.result.ideas.length === 0) return;
     setSelectedIdeaId((prev) => prev ?? pipeline.result!.ideas[0]!.id);
   }, [pipeline.result]);
+
+  const syncProfileToHidden = useCallback((next: ProfileData) => {
+    const goalEl = document.getElementById("goalSelect") as HTMLSelectElement | null;
+    const approachEl = document.getElementById("approachSelect") as HTMLSelectElement | null;
+    const ctxEl = document.getElementById("researchContext") as HTMLTextAreaElement | null;
+    if (goalEl) {
+      goalEl.value = next.goal;
+      goalEl.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    if (approachEl) {
+      approachEl.value = next.approach;
+      approachEl.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    if (ctxEl) {
+      ctxEl.value = next.context;
+      ctxEl.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }, []);
 
   const toast = useCallback((message: string, type: ToastType = "info") => {
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -39,6 +63,24 @@ function App() {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3200);
   }, []);
+
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem("eureka_profile");
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Partial<ProfileData>;
+      const next: ProfileData = {
+        mode: (parsed.mode as any) ?? "academic",
+        goal: typeof parsed.goal === "string" ? parsed.goal : "any",
+        approach: (parsed.approach as any) ?? "any",
+        context: typeof parsed.context === "string" ? parsed.context : "",
+      };
+      setProfile(next);
+      syncProfileToHidden(next);
+    } catch {
+    }
+  }, [syncProfileToHidden]);
+
 
   useEffect(() => {
     if (!pipeline.error) return;
@@ -50,11 +92,17 @@ function App() {
     return pipeline.result.ideas.find((x) => x.id === selectedIdeaId) ?? null;
   }, [pipeline.result, selectedIdeaId]);
 
+  const openIdea = useCallback((ideaId: string) => {
+    setSelectedIdeaId(ideaId);
+    setIdeaModalOpen(true);
+  }, []);
+
   const statusBadge: "Idle" | "Running" | "Error" = pipeline.error ? "Error" : pipeline.isRunning ? "Running" : "Idle";
   const papersCount = pipeline.result?.papers.length ?? 0;
   const ideasCount = pipeline.result?.ideas.length ?? 0;
   const categoriesCount = pipeline.result?.clusters.length ?? 0;
   const timeText = pipeline.result ? `${pipeline.result.duration_seconds.toFixed(0)}s` : "—";
+  const isLanding = activeTab === "research" && !pipeline.isRunning && !pipeline.result && !pipeline.error;
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
@@ -65,166 +113,214 @@ function App() {
         model="Gemini Flash"
         onSetup={() => setActiveTab("settings")}
       />
-      <ControlsBar
-        topic={pipeline.topic}
-        onTopicChange={pipeline.setTopic}
-        onProfile={() => pipeline.pushLog({ level: "info", text: "Profile clicked." })}
-        onRun={() => pipeline.run(pipeline.topic)}
-        onRefresh={() => pipeline.pushLog({ level: "info", text: "Refresh requested." })}
-        onQuick={() => pipeline.pushLog({ level: "info", text: "Quick requested." })}
-        onStop={pipeline.stop}
-        onClear={() => {
-          pipeline.clear();
-          setSelectedIdeaId(null);
-        }}
-        isRunning={pipeline.isRunning}
-        dateFrom={dateFrom}
-        dateTo={dateTo}
-        onDateFromChange={setDateFrom}
-        onDateToChange={setDateTo}
-        language={language}
-        onLanguageChange={setLanguage}
-        maxIdeas={maxIdeas}
-        onMaxIdeasChange={setMaxIdeas}
-      />
+      <div className={isLanding ? "hidden" : ""}>
+        <ControlsBar
+          topic={pipeline.topic}
+          onTopicChange={pipeline.setTopic}
+          onRun={() => pipeline.run(pipeline.topic)}
+          onStop={pipeline.stop}
+          onClear={() => {
+            pipeline.clear();
+            setSelectedIdeaId(null);
+          }}
+          isRunning={pipeline.isRunning}
+        />
+      </div>
 
-      <main className="main h-[calc(100vh-130px)] w-full">
-        <div className="mx-auto grid h-full max-w-[1400px] grid-cols-[320px_1fr]">
-          <LeftPanel logs={pipeline.logs} agents={pipeline.agents} />
-          <div className="right h-full overflow-hidden bg-[var(--bg)]">
-            <div className="h-full overflow-y-auto p-4">
-              <Tabs activeTab={activeTab}>
-                {{
-                  ideas: (
-                    <div className="flex flex-col gap-4">
-                      <div className="stats grid grid-cols-2 gap-3 lg:grid-cols-4">
-                        <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-3 shadow-[var(--shadow)]">
-                          <div className="font-mono text-2xl text-[var(--active)]">{papersCount}</div>
-                          <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-                            Papers Analyzed
+      {isLanding ? (
+        <main className="w-full" style={{ height: "calc(100vh - 62px)" }}>
+          <LandingScreen
+            topic={pipeline.topic}
+            onTopicChange={pipeline.setTopic}
+            onRun={() => pipeline.run(pipeline.topic)}
+            onOpenProfile={() => setProfileOpen(true)}
+            onOpenSettings={() => setActiveTab("settings")}
+          />
+        </main>
+      ) : (
+        <main className="main h-[calc(100vh-130px)] w-full">
+          <div className="mx-auto grid h-full max-w-[1400px] grid-cols-[320px_1fr]">
+            <LeftPanel logs={pipeline.logs} agents={pipeline.agents} />
+            <div className="right h-full overflow-hidden bg-[var(--bg)]">
+              <div className="h-full overflow-hidden p-4">
+                <Tabs activeTab={activeTab}>
+                  {{
+                    research: (
+                      <div className="flex h-full min-h-0 flex-col gap-4">
+                        <div className="stats grid grid-cols-2 gap-3 lg:grid-cols-4">
+                          <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-3 shadow-[var(--shadow)]">
+                            <div className="font-mono text-2xl text-[var(--active)]">{papersCount}</div>
+                            <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                              Papers Analyzed
+                            </div>
+                          </div>
+                          <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-3 shadow-[var(--shadow)]">
+                            <div className="font-mono text-2xl text-[var(--active)]">{ideasCount}</div>
+                            <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                              Ideas Generated
+                            </div>
+                          </div>
+                          <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-3 shadow-[var(--shadow)]">
+                            <div className="font-mono text-2xl text-[var(--active)]">{categoriesCount}</div>
+                            <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                              Categories
+                            </div>
+                          </div>
+                          <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-3 shadow-[var(--shadow)]">
+                            <div className="font-mono text-2xl text-[var(--active)]">{timeText}</div>
+                            <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                              Time
+                            </div>
                           </div>
                         </div>
-                        <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-3 shadow-[var(--shadow)]">
-                          <div className="font-mono text-2xl text-[var(--active)]">{ideasCount}</div>
-                          <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-                            Ideas Generated
-                          </div>
-                        </div>
-                        <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-3 shadow-[var(--shadow)]">
-                          <div className="font-mono text-2xl text-[var(--active)]">{categoriesCount}</div>
-                          <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-                            Categories
-                          </div>
-                        </div>
-                        <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-3 shadow-[var(--shadow)]">
-                          <div className="font-mono text-2xl text-[var(--active)]">{timeText}</div>
-                          <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-                            Time
-                          </div>
-                        </div>
-                      </div>
 
-                      <div className="flex flex-col gap-3 rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <input
-                            id="ideaSearch"
-                            value={ideaSearch}
-                            onChange={(e) => setIdeaSearch(e.target.value)}
-                            placeholder="Search ideas"
-                            className="w-[280px] max-w-[60vw] rounded-[6px] border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-xs text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--active)]"
-                          />
-                          <select
-                            value={levelFilter}
-                            onChange={(e) => setLevelFilter(e.target.value)}
-                            className="rounded-[6px] border border-[var(--border)] bg-[var(--bg)] px-2 py-2 text-xs text-[var(--text)]"
-                          >
-                            <option value="all">All Levels</option>
-                            <option value="undergrad">Undergraduate</option>
-                            <option value="masters">Master's</option>
-                            <option value="phd">PhD</option>
-                            <option value="hackathon">Hackathon</option>
-                            <option value="side">Side Project</option>
-                            <option value="industry">Industry</option>
-                          </select>
-                          <button
-                            type="button"
-                            onClick={() => setCompareMode((v) => !v)}
-                            className={[
-                              "rounded-[6px] border px-3 py-2 text-xs font-semibold",
-                              compareMode
-                                ? "border-[var(--active)] bg-[var(--hover)] text-[var(--active)]"
-                                : "border-[var(--border)] bg-transparent text-[var(--text)] hover:bg-[var(--hover)]",
-                            ].join(" ")}
-                          >
-                            Compare
-                          </button>
-                        </div>
-                      </div>
-
-                      {pipeline.result ? (
-                        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-                          <div className="flex flex-col gap-4 xl:col-span-2">
-                            <ROIPanel
-                              durationSeconds={pipeline.result.duration_seconds}
-                              baselineHumanDays={pipeline.result.baseline_human_days}
-                              roiPercentage={pipeline.result.roi_percentage}
-                            />
-                          </div>
-                          <div className="flex flex-col gap-4">
-                            <IdeaList
-                              ideas={pipeline.result.ideas.filter((x) =>
-                                ideaSearch.trim().length === 0
-                                  ? true
-                                  : x.title.toLowerCase().includes(ideaSearch.toLowerCase()) ||
-                                    x.description.toLowerCase().includes(ideaSearch.toLowerCase()),
-                              )}
-                              selectedId={selectedIdeaId}
-                              onSelect={setSelectedIdeaId}
-                            />
-                            <IdeaDetail
-                              idea={selectedIdea}
-                              onOverride={async (ideaId, input) => {
-                                const updated = await pipeline.applyOverride(ideaId, input);
-                                pipeline.pushLog({ level: "ok", text: "Override applied." });
-                                toast("Override applied.", "ok");
-                                return updated;
+                        <div className="min-h-0 flex-1">
+                          {pipeline.error && !pipeline.result ? (
+                            <ErrorState
+                              title="Pipeline error"
+                              message={pipeline.error}
+                              onRetry={() => {
+                                toast("Retrying...", "info");
+                                pipeline.retry();
                               }}
                             />
-                          </div>
+                          ) : pipeline.isRunning && !pipeline.result ? (
+                            <div className="grid h-full min-h-0 grid-cols-1 gap-4 xl:grid-cols-3">
+                              <div className="flex min-h-0 flex-col gap-4 xl:col-span-2">
+                                <PanelSkeleton title="ROI" lines={6} />
+                                <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow)]">
+                                  <div className="text-sm font-semibold text-[var(--active)]">Live activity</div>
+                                  <div className="mt-2 text-sm text-[var(--muted)]">
+                                    {pipeline.latestStatusText || "Working..."}
+                                  </div>
+                                  <div className="mt-3 text-xs text-[var(--muted)]">
+                                    Results appear when the pipeline completes.
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex min-h-0 flex-col gap-4">
+                                <div className="min-h-0 flex-1">
+                                  <IdeaSkeletonList count={6} />
+                                </div>
+                                <PanelSkeleton title="Idea Detail" lines={6} />
+                              </div>
+                            </div>
+                          ) : pipeline.result ? (
+                            <div className="grid h-full min-h-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,780px)]">
+                              <div className="flex min-h-0 flex-col gap-4">
+                                <ROIPanel
+                                  durationSeconds={pipeline.result.duration_seconds}
+                                  baselineHumanDays={pipeline.result.baseline_human_days}
+                                  roiPercentage={pipeline.result.roi_percentage}
+                                />
+                              </div>
+                              <div className="min-h-0">
+                                <IdeaGrid ideas={pipeline.result.ideas} onOpen={openIdea} />
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              id="welcomeGuide"
+                              className="h-full overflow-y-auto rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-8 text-center text-sm text-[var(--muted)]"
+                            >
+                              <div className="text-lg font-semibold text-[var(--active)]">Welcome to EUREKA</div>
+                              <div className="mt-2">Enter a topic, run the pipeline, then explore and save ideas.</div>
+                              <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-4">
+                                {[
+                                  { title: "Enter Topic", body: "Type a clear research question." },
+                                  { title: "Run Pipeline", body: "Watch live agent progress." },
+                                  { title: "Explore Ideas", body: "Open details and adjust scores." },
+                                  { title: "Save & Export", body: "Bookmark and export shortlist." },
+                                ].map((x) => (
+                                  <div key={x.title} className="rounded-[6px] border border-[var(--border)] bg-[var(--bg)] p-3 text-left">
+                                    <div className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">{x.title}</div>
+                                    <div className="mt-2 text-sm text-[var(--text)]">{x.body}</div>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="mt-6 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                                Example topics
+                              </div>
+                              <div className="mt-2 flex flex-wrap justify-center gap-2">
+                                {[
+                                  "foundation models for scientific discovery",
+                                  "graph neural networks for drug discovery",
+                                  "federated learning privacy attacks",
+                                  "RAG evaluation benchmarks",
+                                ].map((t) => (
+                                  <button
+                                    key={t}
+                                    type="button"
+                                    onClick={() => {
+                                      pipeline.setTopic(t);
+                                      pipeline.run(t);
+                                    }}
+                                    className="rounded-[999px] border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-xs font-semibold text-[var(--text)] hover:bg-[var(--hover)]"
+                                  >
+                                    {t}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      ) : (
-                        <div
-                          id="welcomeGuide"
-                          className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-8 text-center text-sm text-[var(--muted)]"
-                        >
-                          <div className="text-lg font-semibold text-[var(--active)]">Welcome to EUREKA</div>
-                          <div className="mt-2">Select categories, set context, run pipeline, then explore and bookmark.</div>
-                        </div>
-                      )}
-                    </div>
-                  ),
-                  map: pipeline.result ? (
-                    <KnowledgeMapGraph result={pipeline.result} />
-                  ) : (
-                    <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-6 text-sm text-[var(--muted)]">
-                      Run the pipeline to generate a knowledge map.
-                    </div>
-                  ),
-                  recent: (
-                    <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-6 text-sm text-[var(--muted)]">
-                      No previous sessions. Run the pipeline first.
-                    </div>
-                  ),
-                  settings: (
-                    <Settings toast={toast} />
-                  ),
-                }}
-              </Tabs>
+                      </div>
+                    ),
+                    map: pipeline.result ? (
+                      <KnowledgeMapObsidian result={pipeline.result} />
+                    ) : pipeline.isRunning ? (
+                      <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-6 text-sm text-[var(--muted)]">
+                        Map will build after analysis completes.
+                      </div>
+                    ) : (
+                      <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-6 text-sm text-[var(--muted)]">
+                        Run the pipeline to generate a knowledge map.
+                      </div>
+                    ),
+                    chat: (
+                      <ChatPanel />
+                    ),
+                    settings: (
+                      <div className="h-full overflow-y-auto">
+                        <Settings toast={toast} />
+                      </div>
+                    ),
+                  }}
+                </Tabs>
+              </div>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
+      )}
       <ToastViewport toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
+      {pipeline.result ? (
+        <IdeaDetailModal
+          open={ideaModalOpen}
+          result={pipeline.result}
+          idea={selectedIdea}
+          toast={toast}
+          onClose={() => setIdeaModalOpen(false)}
+          onOverride={async (ideaId, input) => {
+            const updated = await pipeline.applyOverride(ideaId, input);
+            pipeline.pushLog({ level: "ok", text: "Override applied." });
+            toast("Override applied.", "ok");
+            return updated;
+          }}
+        />
+      ) : null}
+      <ProfileModal
+        open={profileOpen}
+        initial={profile}
+        toast={toast}
+        onClose={() => setProfileOpen(false)}
+        onSave={(next) => {
+          setProfile(next);
+          setProfileOpen(false);
+          syncProfileToHidden(next);
+          window.sessionStorage.setItem("eureka_profile", JSON.stringify(next));
+          toast("Profile saved.", "ok");
+        }}
+      />
     </div>
   );
 }

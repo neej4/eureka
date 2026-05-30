@@ -1,18 +1,20 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap");
 
 :root {
-  --bg: #181818;
-  --card: #222222;
-  --border: #3b3b3b;
-  --text: #d4d4d4;
-  --muted: #8a8a8a;
-  --hover: #333333;
-  --active: #ffffff;
-  --err: #ff6b6b;
-  --radius: 4px;
-  --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --bg: #f5f6f5;
+  --card: #fefdfc;
+  --border: #dcdfe0;
+  --text: #1b1e23;
+  --muted: #808993;
+  --hover: rgba(253, 141, 99, 0.14);
+  --active: #fd8d63;
+  --err: #d64b3b;
+  --radius: 12px;
+  --shadow: 0 12px 30px rgba(12, 16, 28, 0.08);
+  --font-brand: "Fraunces", ui-serif, Georgia, serif;
 
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,

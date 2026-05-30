@@ -83,6 +83,48 @@ class HumanOverrideInput(BaseModel):
     novelty_override: Optional[float] = None
     feasibility_override: Optional[float] = None
 
+class ChatHistoryItem(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(..., min_length=1)
+
+class ChatRequest(BaseModel):
+    agent: Literal["scout", "gap-analyst", "innovator", "critic", "coherence-validator"]
+    message: str = Field(..., min_length=1)
+    history: List[ChatHistoryItem] = Field(default_factory=list)
+
+def _mock_chat_reply(agent: str, message: str) -> str:
+    if agent == "scout":
+        return (
+            "Scout — Aku bantu eksplorasi cepat.\n\n"
+            "1) Definisikan kata kunci + sinonim\n"
+            "2) Cari 3–5 paper kunci (survey + SOTA)\n"
+            "3) Ringkas: tujuan, metode, dataset, limitasi\n\n"
+            f"Pertanyaan kamu: {message}"
+        )
+    if agent == "gap-analyst":
+        return (
+            "Gap Analyst — Aku cari celah yang bisa dieksekusi.\n\n"
+            "Coba cek: (a) asumsi yang belum diuji, (b) domain yang belum disentuh, (c) metrik evaluasi yang lemah.\n\n"
+            f"Pertanyaan kamu: {message}"
+        )
+    if agent == "innovator":
+        return (
+            "Innovator — Aku fokus ke ide baru yang bisa diprototipe.\n\n"
+            "Kasih aku: topik, batasan (compute/data), dan target output. Aku akan usulkan 3 pendekatan + rencana eksperimen.\n\n"
+            f"Pertanyaan kamu: {message}"
+        )
+    if agent == "critic":
+        return (
+            "Critic — Aku jadi reviewer ketat.\n\n"
+            "Aku akan nanya: baseline apa? data leakage? ablation? threat model? dan apakah klaim bisa direplikasi.\n\n"
+            f"Pertanyaan kamu: {message}"
+        )
+    return (
+        "Coherence Validator — Aku cek konsistensi dan rencana validasi.\n\n"
+        "Aku akan bantu susun checklist: hipotesis → metode → metrik → interpretasi → risk.\n\n"
+        f"Pertanyaan kamu: {message}"
+    )
+
 @app.get("/")
 async def root():
     return {"message": "Eureka API is running", "version": "1.0.0"}
@@ -90,6 +132,10 @@ async def root():
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
+
+@app.post("/api/chat")
+async def chat_endpoint(input: ChatRequest):
+    return {"reply": _mock_chat_reply(input.agent, input.message)}
 
 @app.post("/api/pipeline/start")
 async def start_pipeline(input: TopicInput):
