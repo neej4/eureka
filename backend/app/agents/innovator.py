@@ -1,7 +1,7 @@
 import hashlib
 import random
 from typing import List
-from models import Paper, Cluster, Idea
+from ..models import Paper, Cluster, Idea
 
 def innovator_agent(clusters: List[Cluster], papers: List[Paper], topic: str) -> List[Idea]:
     white_space_clusters = [c for c in clusters if c.status == "white_space"]

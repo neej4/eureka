@@ -1,7 +1,7 @@
 import hashlib
 import json
 from typing import List
-from models import Paper, Cluster
+from ..models import Paper, Cluster
 
 def gap_analyst_agent(papers: List[Paper]) -> List[Cluster]:
     if not papers:
