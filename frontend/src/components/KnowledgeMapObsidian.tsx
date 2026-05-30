@@ -282,12 +282,16 @@ export function KnowledgeMapObsidian(props: { result: PipelineResult }) {
   }, [size.h, size.w]);
 
   useEffect(() => {
-    const spread = Math.max(300, graph.nodes.length * 12);
-    const nodes: GraphNode[] = graph.nodes.map((n) => ({ ...n, x: (Math.random() - 0.5) * spread, y: (Math.random() - 0.5) * spread }));
+    const spread = Math.max(350, graph.nodes.length * 15);
+    const nodes: GraphNode[] = graph.nodes.map((n) => ({
+      ...n,
+      x: (Math.random() - 0.5) * spread,
+      y: (Math.random() - 0.5) * spread,
+    }));
     const links = graph.links.map((l) => ({ ...l }));
 
     const sim = forceSimulation(nodes)
-      .force("charge", forceManyBody().strength(-900))
+      .force("charge", forceManyBody<GraphNode>().strength(-1200))
       .force("center", forceCenter(0, 0))
       .force(
         "link",
@@ -296,15 +300,16 @@ export function KnowledgeMapObsidian(props: { result: PipelineResult }) {
           .distance((l) => {
             const s = typeof l.source === "string" ? null : (l.source as GraphNode);
             const t = typeof l.target === "string" ? null : (l.target as GraphNode);
-            if (s?.kind === "cluster" || t?.kind === "cluster") return 200;
-            return 150;
+            if (s?.kind === "cluster" || t?.kind === "cluster") return 300;
+            return 200;
           })
-          .strength(0.25),
+          .strength(0.15),
       )
-      .force("collide", forceCollide<GraphNode>().radius((d) => d.r + 28).strength(1))
-      .alpha(1)
-      .alphaDecay(0.03)
-      .velocityDecay(0.4);
+      .force("cluster-separate", forceCollide<GraphNode>().radius((d) => d.kind === "cluster" ? 110 : d.r + 22).strength(1))
+      .force("paper-separate", forceCollide<GraphNode>().radius((d) => d.kind === "paper" ? d.r + 18 : d.r + 8).strength(0.7))
+      .alpha(1.2)
+      .alphaDecay(0.006)
+      .velocityDecay(0.3);
 
     sim.on("tick", requestDraw);
     simRef.current = sim;
