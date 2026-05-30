@@ -1,12 +1,21 @@
-export type AgentName = "scout" | "gap_analyst" | "innovator" | "critic" | "coherence";
+export interface TopicInput {
+  topic: string;
+}
 
-export type AgentStatus = "pending" | "running" | "completed" | "failed";
+export interface AgentStatus {
+  agent: 'scout' | 'gap-analyst' | 'innovator' | 'critic' | 'coherence-validator';
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  message?: string;
+}
 
-export interface PipelineEvent {
-  agent: AgentName;
-  status: AgentStatus;
-  from_cache?: boolean;
-  error?: string;
+export interface PipelineStatus {
+  pipeline_id: string;
+  status: 'running' | 'completed' | 'failed';
+  agents: AgentStatus[];
+  started_at: string;
+  completed_at?: string;
+  topic: string;
+  total_duration_seconds?: number;
 }
 
 export interface Paper {
@@ -18,38 +27,44 @@ export interface Paper {
   url: string;
 }
 
-export type ClusterLabel = "saturated" | "white_space";
-
 export interface Cluster {
   name: string;
+  papers: string[];
+  status: 'saturated' | 'white_space';
   paper_count: number;
-  label: ClusterLabel;
-  paper_ids: string[];
 }
-
-export type ConfidenceLevel = "low" | "medium" | "high";
 
 export interface Idea {
   id: string;
   title: string;
   description: string;
   novelty_score: number;
-  novelty_margin: number;
+  novelty_score_range: string;
   feasibility_score: number;
-  feasibility_margin: number;
-  confidence_level: ConfidenceLevel;
-  confidence_reason?: string;
+  feasibility_score_range: string;
+  confidence_level: 'low' | 'medium' | 'high';
   coherence_score: number;
-  coherence_issues: string[];
   citations: string[];
-  cross_clusters: string[];
-  validation_plan: [string, string, string];
+  validation_plan: string[];
+  is_human_adjusted: boolean;
+  human_novelty_override?: number;
+  human_feasibility_override?: number;
 }
 
 export interface PipelineResult {
+  pipeline_id: string;
+  topic: string;
   papers: Paper[];
   clusters: Cluster[];
   ideas: Idea[];
   duration_seconds: number;
+  baseline_human_days: number;
+  roi_percentage: number;
+  cached: boolean;
 }
 
+export interface StartPipelineResponse {
+  pipeline_id: string;
+  status: string;
+  message: string;
+}
