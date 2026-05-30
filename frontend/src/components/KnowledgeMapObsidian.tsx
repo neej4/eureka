@@ -278,15 +278,16 @@ export function KnowledgeMapObsidian(props: { result: PipelineResult }) {
   useEffect(() => {
     const cx = size.w / 2;
     const cy = size.h / 2;
-    setVp({ x: cx, y: cy, k: 1 });
+    setVp({ x: cx, y: cy, k: 0.85 });
   }, [size.h, size.w]);
 
   useEffect(() => {
-    const nodes = graph.nodes.map((n) => ({ ...n }));
+    const spread = Math.max(300, graph.nodes.length * 12);
+    const nodes: GraphNode[] = graph.nodes.map((n) => ({ ...n, x: (Math.random() - 0.5) * spread, y: (Math.random() - 0.5) * spread }));
     const links = graph.links.map((l) => ({ ...l }));
 
     const sim = forceSimulation(nodes)
-      .force("charge", forceManyBody().strength(-560))
+      .force("charge", forceManyBody().strength(-900))
       .force("center", forceCenter(0, 0))
       .force(
         "link",
@@ -295,15 +296,15 @@ export function KnowledgeMapObsidian(props: { result: PipelineResult }) {
           .distance((l) => {
             const s = typeof l.source === "string" ? null : (l.source as GraphNode);
             const t = typeof l.target === "string" ? null : (l.target as GraphNode);
-            if (s?.kind === "cluster" || t?.kind === "cluster") return 150;
-            return 120;
+            if (s?.kind === "cluster" || t?.kind === "cluster") return 200;
+            return 150;
           })
-          .strength(0.35),
+          .strength(0.25),
       )
-      .force("collide", forceCollide<GraphNode>().radius((d) => d.r + 18).strength(0.95))
-      .alpha(0.9)
-      .alphaDecay(0.06)
-      .velocityDecay(0.58);
+      .force("collide", forceCollide<GraphNode>().radius((d) => d.r + 28).strength(1))
+      .alpha(1)
+      .alphaDecay(0.03)
+      .velocityDecay(0.4);
 
     sim.on("tick", requestDraw);
     simRef.current = sim;
@@ -443,19 +444,17 @@ export function KnowledgeMapObsidian(props: { result: PipelineResult }) {
   }, [requestDraw]);
 
   return (
-    <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow)]">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="text-sm font-semibold text-[var(--active)]">Knowledge Map</div>
-        <div className="text-xs text-[var(--muted)]">
-          drag nodes • scroll to zoom • drag background to pan
-        </div>
+    <div className="flex flex-col rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] overflow-hidden">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-3">
+        <div className="text-sm font-semibold text-[var(--text)]">Knowledge Map</div>
+        <div className="text-xs text-[var(--muted)]">drag nodes · scroll to zoom · pan</div>
       </div>
-      <div ref={containerRef} className="relative h-[560px] overflow-hidden rounded-[6px] border border-[var(--border)] bg-[var(--bg)]">
+      <div ref={containerRef} className="relative flex-1 overflow-hidden bg-[var(--bg)]" style={{ minHeight: "480px" }}>
         <canvas ref={canvasRef} className="h-full w-full touch-none" />
         {tooltip ? (
           <div
-            className="pointer-events-none absolute z-10 max-w-[360px] rounded-[6px] border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-xs text-[var(--text)] shadow-[var(--shadow)]"
-            style={{ left: clamp(tooltip.x + 12, 8, size.w - 380), top: clamp(tooltip.y + 12, 8, size.h - 80) }}
+            className="pointer-events-none absolute z-10 max-w-[340px] rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-xs text-[var(--text)] shadow-[var(--shadow)]"
+            style={{ left: clamp(tooltip.x + 12, 8, size.w - 370), top: clamp(tooltip.y + 12, 8, size.h - 80) }}
           >
             {tooltip.text}
           </div>

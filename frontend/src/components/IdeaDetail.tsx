@@ -3,21 +3,15 @@ import type { Idea } from "../../../shared/types";
 
 type ConfidenceLevel = Idea["confidence_level"];
 
-function confidenceClasses(level: ConfidenceLevel) {
+function confidenceColor(level: ConfidenceLevel) {
   switch (level) {
     case "high":
-      return "bg-[var(--hover)] text-[var(--active)]";
+      return "bg-[var(--ok-soft)] text-[var(--ok)]";
     case "medium":
-      return "bg-[var(--hover)] text-[var(--active)]";
+      return "bg-[var(--active-soft)] text-[var(--active)]";
     case "low":
-      return "bg-[var(--card)] text-[var(--err)]";
+      return "bg-[var(--err-soft)] text-[var(--err)]";
   }
-}
-
-function coherenceClasses(score: number) {
-  if (score >= 70) return "bg-[var(--hover)] text-[var(--active)]";
-  if (score >= 50) return "bg-[var(--hover)] text-[var(--active)]";
-  return "bg-[var(--card)] text-[var(--err)]";
 }
 
 export function IdeaDetail(props: {
@@ -27,9 +21,8 @@ export function IdeaDetail(props: {
 }) {
   if (!props.idea) {
     return (
-      <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow)]">
-        <div className="text-sm font-semibold text-[var(--active)]">Idea Detail</div>
-        <div className="mt-2 text-sm text-[var(--muted)]">Select an idea to see details.</div>
+      <div className="flex flex-col items-center justify-center rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-8 text-center">
+        <div className="text-sm font-semibold text-[var(--muted)]">Select an idea to see details.</div>
       </div>
     );
   }
@@ -56,55 +49,48 @@ export function IdeaDetail(props: {
   const wrapperClass =
     variant === "embedded"
       ? "min-h-0 overflow-y-auto"
-      : "h-full min-h-0 overflow-y-auto rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow)]";
+      : "h-full min-h-0 overflow-y-auto rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow)]";
 
   return (
     <div className={wrapperClass}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-[var(--active)]">{idea.title}</div>
-          <div className="mt-1 text-sm text-[var(--text)]">{idea.description}</div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="text-base font-semibold text-[var(--text)]">{idea.title}</div>
+          <div className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{idea.description}</div>
         </div>
-        <div className="flex shrink-0 flex-col gap-2">
-          <div className={["rounded-full px-2 py-1 text-xs font-semibold", confidenceClasses(idea.confidence_level)].join(" ")}>
-            confidence: {idea.confidence_level}
-          </div>
-          <div className={["rounded-full px-2 py-1 text-xs font-semibold", coherenceClasses(idea.coherence_score)].join(" ")}>
-            coherence: {idea.coherence_score}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <div className="rounded-md border border-[var(--border)] bg-[var(--bg)] p-3">
-          <div className="text-xs text-[var(--muted)]">Novelty</div>
-          <div className="text-lg font-bold text-[var(--active)]">
-            {idea.novelty_score}{" "}
-            <span className="text-sm font-medium text-[var(--muted)]">{idea.novelty_score_range}</span>
-          </div>
-        </div>
-        <div className="rounded-md border border-[var(--border)] bg-[var(--bg)] p-3">
-          <div className="text-xs text-[var(--muted)]">Feasibility</div>
-          <div className="text-lg font-bold text-[var(--active)]">
-            {idea.feasibility_score}{" "}
-            <span className="text-sm font-medium text-[var(--muted)]">{idea.feasibility_score_range}</span>
-          </div>
-        </div>
-        <div className="rounded-md border border-[var(--border)] bg-[var(--bg)] p-3">
-          <div className="text-xs text-[var(--muted)]">Human adjusted</div>
-          <div className="mt-1 text-sm font-semibold text-[var(--active)]">
-            {idea.is_human_adjusted ? "Yes" : "No"}
-          </div>
+        <div className="flex shrink-0 flex-col gap-1.5">
+          <span className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ${confidenceColor(idea.confidence_level)}`}>
+            {idea.confidence_level}
+          </span>
+          <span className="inline-block rounded-full bg-[var(--bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--muted)]">
+            coh {idea.coherence_score}
+          </span>
         </div>
       </div>
 
-      <div className="mt-4 rounded-md border border-[var(--border)] bg-[var(--bg)] p-3">
-        <div className="mb-2 text-xs font-semibold text-[var(--active)]">Human overrides</div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="mt-5 grid grid-cols-3 gap-3">
+        {[
+          { label: "Novelty", score: idea.novelty_score, range: idea.novelty_score_range },
+          { label: "Feasibility", score: idea.feasibility_score, range: idea.feasibility_score_range },
+          { label: "Adjusted", score: idea.is_human_adjusted ? "Yes" : "—", range: "" },
+        ].map((x) => (
+          <div key={x.label} className="flex flex-col gap-1 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] p-3">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">{x.label}</span>
+            <span className="text-xl font-bold text-[var(--text)]">
+              {x.score}
+              {x.range && <span className="ml-1 text-sm font-normal text-[var(--muted)]">{x.range}</span>}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-5 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] p-4">
+        <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Adjust Scores</div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <label className="flex flex-col gap-2">
             <div className="flex items-center justify-between text-xs text-[var(--muted)]">
               <span>Novelty</span>
-              <span className="font-mono text-[var(--active)]">{noveltyOverride}</span>
+              <span className="font-mono font-semibold text-[var(--active)]">{noveltyOverride}</span>
             </div>
             <input
               type="range"
@@ -119,7 +105,7 @@ export function IdeaDetail(props: {
           <label className="flex flex-col gap-2">
             <div className="flex items-center justify-between text-xs text-[var(--muted)]">
               <span>Feasibility</span>
-              <span className="font-mono text-[var(--active)]">{feasibilityOverride}</span>
+              <span className="font-mono font-semibold text-[var(--active)]">{feasibilityOverride}</span>
             </div>
             <input
               type="range"
@@ -132,7 +118,7 @@ export function IdeaDetail(props: {
             />
           </label>
         </div>
-        <div className="mt-3 flex items-center justify-end gap-2">
+        <div className="mt-3 flex justify-end">
           <button
             type="button"
             disabled={!hasChanges || isApplying}
@@ -140,42 +126,41 @@ export function IdeaDetail(props: {
               if (!props.onOverride) return;
               setIsApplying(true);
               try {
-                await props.onOverride(idea.id, {
-                  novelty_override: noveltyOverride,
-                  feasibility_override: feasibilityOverride,
-                });
+                await props.onOverride(idea.id, { novelty_override: noveltyOverride, feasibility_override: feasibilityOverride });
               } finally {
                 setIsApplying(false);
               }
             }}
-            className="rounded-[6px] bg-[#ffffff] px-3 py-2 text-xs font-semibold text-[var(--bg)] disabled:opacity-50"
+            className="rounded-[var(--radius)] bg-[var(--active)] px-4 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
           >
-            Apply
+            {isApplying ? "Saving..." : "Apply"}
           </button>
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div className="rounded-md border border-[var(--border)] bg-[var(--bg)] p-3 md:col-span-2">
-          <div className="text-xs font-semibold text-[var(--active)]">Validation plan</div>
-          <ol className="mt-2 list-decimal pl-5 text-sm text-[var(--text)]">
+      {idea.validation_plan.length > 0 && (
+        <div className="mt-5">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Validation Plan</div>
+          <ol className="list-inside list-decimal space-y-1.5 text-sm text-[var(--text)]">
             {idea.validation_plan.map((x) => (
-              <li key={x}>{x}</li>
+              <li key={x} className="leading-relaxed">{x}</li>
             ))}
           </ol>
         </div>
-      </div>
+      )}
 
-      <div className="mt-4 rounded-md border border-[var(--border)] bg-[var(--bg)] p-3">
-        <div className="text-xs font-semibold text-[var(--active)]">Citations</div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {idea.citations.map((c) => (
-            <span key={c} className="rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1 font-mono text-xs font-semibold text-[var(--text)]">
-              {c}
-            </span>
-          ))}
+      {idea.citations.length > 0 && (
+        <div className="mt-5">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Citations</div>
+          <div className="flex flex-wrap gap-2">
+            {idea.citations.map((c) => (
+              <span key={c} className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] px-2.5 py-1 font-mono text-xs text-[var(--muted)]">
+                {c}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
