@@ -3,17 +3,14 @@ import type { TabName } from "./types";
 
 const TABS: Array<{ name: TabName; label: string }> = [
   { name: "ideas", label: "Ideas" },
+  { name: "map", label: "Knowledge Map" },
   { name: "recent", label: "Recent" },
-  { name: "roadmap", label: "Roadmap" },
-  { name: "shortlist", label: "Shortlist" },
   { name: "settings", label: "Settings" },
-  { name: "docs", label: "Docs" },
 ];
 
 export function Header(props: {
   activeTab: TabName;
   onTabChange: (tab: TabName) => void;
-  shortlistCount: number;
   status: "Idle" | "Running" | "Error";
   model: string;
   onSetup: () => void;
@@ -70,11 +67,6 @@ export function Header(props: {
                 ].join(" ")}
               >
                 <span>{t.label}</span>
-                {t.name === "shortlist" ? (
-                  <span className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] px-1.5 py-0.5 text-[10px] text-[var(--text)]">
-                    {props.shortlistCount}
-                  </span>
-                ) : null}
               </button>
             );
           })}

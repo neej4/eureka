@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import type { Idea } from "../../../shared/types";
 
 type ConfidenceLevel = Idea["confidence_level"];
@@ -19,7 +20,10 @@ function coherenceClasses(score: number) {
   return "bg-[var(--card)] text-[var(--err)]";
 }
 
-export function IdeaDetail(props: { idea: Idea | null }) {
+export function IdeaDetail(props: {
+  idea: Idea | null;
+  onOverride?: (ideaId: string, input: { novelty_override?: number; feasibility_override?: number }) => Promise<Idea>;
+}) {
   if (!props.idea) {
     return (
       <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow)]">
@@ -30,6 +34,22 @@ export function IdeaDetail(props: { idea: Idea | null }) {
   }
 
   const idea = props.idea;
+  const [noveltyOverride, setNoveltyOverride] = useState<number>(idea.human_novelty_override ?? idea.novelty_score);
+  const [feasibilityOverride, setFeasibilityOverride] = useState<number>(
+    idea.human_feasibility_override ?? idea.feasibility_score,
+  );
+  const [isApplying, setIsApplying] = useState(false);
+
+  useEffect(() => {
+    setNoveltyOverride(idea.human_novelty_override ?? idea.novelty_score);
+    setFeasibilityOverride(idea.human_feasibility_override ?? idea.feasibility_score);
+  }, [idea]);
+
+  const hasChanges = useMemo(() => {
+    const baseNovelty = idea.human_novelty_override ?? idea.novelty_score;
+    const baseFeas = idea.human_feasibility_override ?? idea.feasibility_score;
+    return noveltyOverride !== baseNovelty || feasibilityOverride !== baseFeas;
+  }, [feasibilityOverride, idea, noveltyOverride]);
 
   return (
     <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow)]">
@@ -68,6 +88,63 @@ export function IdeaDetail(props: { idea: Idea | null }) {
           <div className="mt-1 text-sm font-semibold text-[var(--active)]">
             {idea.is_human_adjusted ? "Yes" : "No"}
           </div>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-md border border-[var(--border)] bg-[var(--bg)] p-3">
+        <div className="mb-2 text-xs font-semibold text-[var(--active)]">Human overrides</div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <label className="flex flex-col gap-2">
+            <div className="flex items-center justify-between text-xs text-[var(--muted)]">
+              <span>Novelty</span>
+              <span className="font-mono text-[var(--active)]">{noveltyOverride}</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={noveltyOverride}
+              onChange={(e) => setNoveltyOverride(Number(e.target.value))}
+              className="w-full accent-[var(--active)]"
+            />
+          </label>
+          <label className="flex flex-col gap-2">
+            <div className="flex items-center justify-between text-xs text-[var(--muted)]">
+              <span>Feasibility</span>
+              <span className="font-mono text-[var(--active)]">{feasibilityOverride}</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={feasibilityOverride}
+              onChange={(e) => setFeasibilityOverride(Number(e.target.value))}
+              className="w-full accent-[var(--active)]"
+            />
+          </label>
+        </div>
+        <div className="mt-3 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            disabled={!hasChanges || isApplying}
+            onClick={async () => {
+              if (!props.onOverride) return;
+              setIsApplying(true);
+              try {
+                await props.onOverride(idea.id, {
+                  novelty_override: noveltyOverride,
+                  feasibility_override: feasibilityOverride,
+                });
+              } finally {
+                setIsApplying(false);
+              }
+            }}
+            className="rounded-[6px] bg-[#ffffff] px-3 py-2 text-xs font-semibold text-[var(--bg)] disabled:opacity-50"
+          >
+            Apply
+          </button>
         </div>
       </div>
 

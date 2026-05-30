@@ -1,1 +1,1 @@
-export type TabName = "ideas" | "recent" | "roadmap" | "shortlist" | "settings" | "docs";
+export type TabName = "ideas" | "map" | "recent" | "settings";

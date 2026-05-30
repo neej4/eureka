@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Idea } from "../../shared/types";
 import { IdeaDetail } from "./components/IdeaDetail";
 import { IdeaList } from "./components/IdeaList";
-import { KnowledgeMap } from "./components/KnowledgeMap";
-import { PipelineStatus } from "./components/PipelineStatus";
+import { KnowledgeMapGraph } from "./components/KnowledgeMapGraph";
 import { ROIPanel } from "./components/ROIPanel";
+import { Settings } from "./components/Settings";
+import { ToastViewport, type ToastItem, type ToastType } from "./components/Toast";
 import { usePipeline } from "./hooks/usePipeline";
 import { ControlsBar } from "./shell/ControlsBar";
 import { Header } from "./shell/Header";
-import { LeftPanel, type LogLine } from "./shell/LeftPanel";
+import { LeftPanel } from "./shell/LeftPanel";
 import { Tabs } from "./shell/Tabs";
 import type { TabName } from "./shell/types";
 
@@ -16,7 +17,7 @@ function App() {
   const pipeline = usePipeline();
   const [selectedIdeaId, setSelectedIdeaId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabName>("ideas");
-  const [logs, setLogs] = useState<LogLine[]>([]);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [language, setLanguage] = useState<"en" | "id">("en");
@@ -31,30 +32,25 @@ function App() {
     setSelectedIdeaId((prev) => prev ?? pipeline.result!.ideas[0]!.id);
   }, [pipeline.result]);
 
-  useEffect(() => {
-    if (pipeline.isRunning) {
-      setLogs((prev) => [...prev, { level: "info", text: "Pipeline started." }]);
-    } else {
-      if (pipeline.result) setLogs((prev) => [...prev, { level: "ok", text: "Pipeline completed." }]);
-    }
-  }, [pipeline.isRunning, pipeline.result]);
+  const toast = useCallback((message: string, type: ToastType = "info") => {
+    const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    setToasts((prev) => [{ id, type, message }, ...prev].slice(0, 4));
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3200);
+  }, []);
 
   useEffect(() => {
-    const last = pipeline.agents[pipeline.agents.length - 1];
-    if (!last) return;
-    setLogs((prev) => {
-      const key = `${last.agent}:${last.status}`;
-      if (prev.length > 0 && prev[prev.length - 1]!.text.endsWith(key)) return prev;
-      return [...prev, { level: "info", text: `status ${key}` }];
-    });
-  }, [pipeline.agents]);
+    if (!pipeline.error) return;
+    toast(pipeline.error, "error");
+  }, [pipeline.error, toast]);
 
   const selectedIdea: Idea | null = useMemo(() => {
     if (!pipeline.result || !selectedIdeaId) return null;
     return pipeline.result.ideas.find((x) => x.id === selectedIdeaId) ?? null;
   }, [pipeline.result, selectedIdeaId]);
 
-  const statusBadge: "Idle" | "Running" | "Error" = pipeline.isRunning ? "Running" : "Idle";
+  const statusBadge: "Idle" | "Running" | "Error" = pipeline.error ? "Error" : pipeline.isRunning ? "Running" : "Idle";
   const papersCount = pipeline.result?.papers.length ?? 0;
   const ideasCount = pipeline.result?.ideas.length ?? 0;
   const categoriesCount = pipeline.result?.clusters.length ?? 0;
@@ -65,23 +61,21 @@ function App() {
       <Header
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        shortlistCount={0}
         status={statusBadge}
         model="Gemini Flash"
-        onSetup={() => setLogs((prev) => [...prev, { level: "info", text: "Setup clicked." }])}
+        onSetup={() => setActiveTab("settings")}
       />
       <ControlsBar
         topic={pipeline.topic}
         onTopicChange={pipeline.setTopic}
-        onProfile={() => setLogs((prev) => [...prev, { level: "info", text: "Profile clicked." }])}
+        onProfile={() => pipeline.pushLog({ level: "info", text: "Profile clicked." })}
         onRun={() => pipeline.run(pipeline.topic)}
-        onRefresh={() => setLogs((prev) => [...prev, { level: "info", text: "Refresh requested." }])}
-        onQuick={() => setLogs((prev) => [...prev, { level: "info", text: "Quick requested." }])}
-        onStop={() => setLogs((prev) => [...prev, { level: "warn", text: "Stop not available in mock mode." }])}
+        onRefresh={() => pipeline.pushLog({ level: "info", text: "Refresh requested." })}
+        onQuick={() => pipeline.pushLog({ level: "info", text: "Quick requested." })}
+        onStop={pipeline.stop}
         onClear={() => {
           pipeline.clear();
           setSelectedIdeaId(null);
-          setLogs([]);
         }}
         isRunning={pipeline.isRunning}
         dateFrom={dateFrom}
@@ -96,7 +90,7 @@ function App() {
 
       <main className="main h-[calc(100vh-130px)] w-full">
         <div className="mx-auto grid h-full max-w-[1400px] grid-cols-[320px_1fr]">
-          <LeftPanel logs={logs} />
+          <LeftPanel logs={pipeline.logs} agents={pipeline.agents} />
           <div className="right h-full overflow-hidden bg-[var(--bg)]">
             <div className="h-full overflow-y-auto p-4">
               <Tabs activeTab={activeTab}>
@@ -165,13 +159,11 @@ function App() {
                             Compare
                           </button>
                         </div>
-                        <PipelineStatus agents={pipeline.agents} />
                       </div>
 
                       {pipeline.result ? (
                         <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
                           <div className="flex flex-col gap-4 xl:col-span-2">
-                            <KnowledgeMap clusters={pipeline.result.clusters} />
                             <ROIPanel
                               durationSeconds={pipeline.result.duration_seconds}
                               baselineHumanDays={pipeline.result.baseline_human_days}
@@ -189,7 +181,15 @@ function App() {
                               selectedId={selectedIdeaId}
                               onSelect={setSelectedIdeaId}
                             />
-                            <IdeaDetail idea={selectedIdea} />
+                            <IdeaDetail
+                              idea={selectedIdea}
+                              onOverride={async (ideaId, input) => {
+                                const updated = await pipeline.applyOverride(ideaId, input);
+                                pipeline.pushLog({ level: "ok", text: "Override applied." });
+                                toast("Override applied.", "ok");
+                                return updated;
+                              }}
+                            />
                           </div>
                         </div>
                       ) : (
@@ -203,30 +203,20 @@ function App() {
                       )}
                     </div>
                   ),
+                  map: pipeline.result ? (
+                    <KnowledgeMapGraph result={pipeline.result} />
+                  ) : (
+                    <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-6 text-sm text-[var(--muted)]">
+                      Run the pipeline to generate a knowledge map.
+                    </div>
+                  ),
                   recent: (
                     <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-6 text-sm text-[var(--muted)]">
                       No previous sessions. Run the pipeline first.
                     </div>
                   ),
-                  roadmap: (
-                    <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-6 text-sm text-[var(--muted)]">
-                      Open an idea and click Build Roadmap to generate a knowledge graph.
-                    </div>
-                  ),
-                  shortlist: (
-                    <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-6 text-sm text-[var(--muted)]">
-                      Bookmark ideas to build your shortlist.
-                    </div>
-                  ),
                   settings: (
-                    <div className="max-w-[560px] rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-6 text-sm text-[var(--muted)]">
-                      Settings will appear here.
-                    </div>
-                  ),
-                  docs: (
-                    <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-6 text-sm text-[var(--muted)]">
-                      Docs link placeholder.
-                    </div>
+                    <Settings toast={toast} />
                   ),
                 }}
               </Tabs>
@@ -234,6 +224,7 @@ function App() {
           </div>
         </div>
       </main>
+      <ToastViewport toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
     </div>
   );
 }

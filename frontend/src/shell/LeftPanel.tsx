@@ -1,9 +1,17 @@
+import type { AgentStatus } from "../../../shared/types";
+import { PipelineStatus } from "../components/PipelineStatus";
+
 export type LogLine = {
   level: "info" | "ok" | "warn" | "err";
   text: string;
 };
 
-export function LeftPanel(props: { logs: LogLine[] }) {
+export function LeftPanel(props: { logs: LogLine[]; agents: AgentStatus[] }) {
+  const total = props.agents.length || 1;
+  const completed = props.agents.filter((a) => a.status === "completed").length;
+  const failed = props.agents.some((a) => a.status === "failed");
+  const progressPct = Math.round((completed / total) * 100);
+
   return (
     <aside className="left h-full overflow-hidden border-r border-[var(--border)] bg-[var(--bg)]">
       <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
@@ -46,6 +54,22 @@ export function LeftPanel(props: { logs: LogLine[] }) {
                 </label>
               </div>
             </details>
+          </div>
+        </section>
+
+        <section>
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Pipeline</div>
+          <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-3">
+            <div className="mb-3 h-2 w-full overflow-hidden rounded-full border border-[var(--border)] bg-[var(--bg)]">
+              <div
+                className={[
+                  "h-full transition-[width] duration-300",
+                  failed ? "bg-[var(--err)]" : "bg-[var(--active)]",
+                ].join(" ")}
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <PipelineStatus agents={props.agents} />
           </div>
         </section>
 
