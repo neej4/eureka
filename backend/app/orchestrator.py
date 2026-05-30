@@ -189,12 +189,21 @@ class PipelineOrchestrator:
         )
     
     def get_status(self) -> PipelineStatus:
+        agent_statuses = [a.status for a in self.status.values()]
+
+        if any(s == "failed" for s in agent_statuses):
+            overall_status: str = "failed"
+        elif all(s == "completed" for s in agent_statuses):
+            overall_status = "completed"
+        else:
+            overall_status = "running"
+
         return PipelineStatus(
             pipeline_id=self.pipeline_id,
-            status="completed",
+            status=overall_status,
             agents=list(self.status.values()),
-            started_at=self.started_at.isoformat(),
-            completed_at=datetime.now().isoformat(),
+            started_at=self.started_at,
+            completed_at=datetime.now() if overall_status in ("completed", "failed") else None,
             topic=self.topic,
             total_duration_seconds=(datetime.now() - self.started_at).total_seconds()
         )
