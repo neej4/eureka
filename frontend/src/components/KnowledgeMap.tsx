@@ -17,12 +17,12 @@ export function KnowledgeMap(props: { clusters: Cluster[] }) {
             <div
               className={[
                 "shrink-0 rounded-full px-2 py-1 text-xs font-semibold",
-                c.label === "white_space"
+                c.status === "white_space"
                   ? "bg-emerald-100 text-emerald-900"
                   : "bg-slate-100 text-slate-700",
               ].join(" ")}
             >
-              {c.label}
+              {c.status}
             </div>
           </div>
         ))}
@@ -30,4 +30,3 @@ export function KnowledgeMap(props: { clusters: Cluster[] }) {
     </div>
   );
 }
-

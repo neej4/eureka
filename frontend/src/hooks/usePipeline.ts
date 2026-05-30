@@ -1,25 +1,27 @@
 import { useCallback, useMemo, useState } from "react";
-import type { AgentName, PipelineEvent, PipelineResult } from "../../../shared/types";
+import type { AgentStatus, PipelineResult } from "../../../shared/types";
 import { mockResult } from "../data/mockData";
 
-const AGENTS: AgentName[] = ["scout", "gap_analyst", "innovator", "critic", "coherence"];
+type AgentKey = AgentStatus["agent"];
+
+const AGENTS: AgentKey[] = ["scout", "gap-analyst", "innovator", "critic", "coherence-validator"];
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-const buildInitialEvents = (): PipelineEvent[] =>
+const buildInitialAgents = (): AgentStatus[] =>
   AGENTS.map((agent) => ({ agent, status: "pending" as const }));
 
 export function usePipeline() {
   const [topic, setTopic] = useState("");
   const [isRunning, setIsRunning] = useState(false);
-  const [events, setEvents] = useState<PipelineEvent[]>(() => buildInitialEvents());
+  const [agents, setAgents] = useState<AgentStatus[]>(() => buildInitialAgents());
   const [result, setResult] = useState<PipelineResult | null>(null);
 
-  const eventByAgent = useMemo(() => {
-    const map = new Map<AgentName, PipelineEvent>();
-    for (const ev of events) map.set(ev.agent, ev);
+  const agentByName = useMemo(() => {
+    const map = new Map<AgentKey, AgentStatus>();
+    for (const ev of agents) map.set(ev.agent, ev);
     return map;
-  }, [events]);
+  }, [agents]);
 
   const run = useCallback(async (nextTopic: string) => {
     if (isRunning) return;
@@ -29,22 +31,22 @@ export function usePipeline() {
     setTopic(clean);
     setIsRunning(true);
     setResult(null);
-    setEvents(buildInitialEvents());
+    setAgents(buildInitialAgents());
 
     for (const agent of AGENTS) {
-      setEvents((prev) =>
+      setAgents((prev) =>
         prev.map((ev) => (ev.agent === agent ? { ...ev, status: "running" } : ev)),
       );
 
       await sleep(450);
 
-      setEvents((prev) =>
+      setAgents((prev) =>
         prev.map((ev) => (ev.agent === agent ? { ...ev, status: "completed" } : ev)),
       );
     }
 
     await sleep(250);
-    setResult(mockResult);
+    setResult({ ...mockResult, topic: clean });
     setIsRunning(false);
   }, [isRunning]);
 
@@ -52,10 +54,9 @@ export function usePipeline() {
     topic,
     setTopic,
     isRunning,
-    events,
-    eventByAgent,
+    agents,
+    agentByName,
     result,
     run,
   };
 }
-

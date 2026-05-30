@@ -45,7 +45,7 @@ function App() {
             onSubmit={() => pipeline.run(pipeline.topic)}
           />
           <div className="mt-4">
-            <PipelineStatus events={pipeline.events} />
+            <PipelineStatus agents={pipeline.agents} />
           </div>
         </div>
 
@@ -53,7 +53,11 @@ function App() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="flex flex-col gap-4 lg:col-span-2">
               <KnowledgeMap clusters={pipeline.result.clusters} />
-              <ROIPanel durationSeconds={pipeline.result.duration_seconds} />
+              <ROIPanel
+                durationSeconds={pipeline.result.duration_seconds}
+                baselineHumanDays={pipeline.result.baseline_human_days}
+                roiPercentage={pipeline.result.roi_percentage}
+              />
             </div>
             <div className="flex flex-col gap-4">
               <IdeaList
