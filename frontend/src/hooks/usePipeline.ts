@@ -50,6 +50,12 @@ export function usePipeline() {
     setIsRunning(false);
   }, [isRunning]);
 
+  const clear = useCallback(() => {
+    if (isRunning) return;
+    setResult(null);
+    setAgents(buildInitialAgents());
+  }, [isRunning]);
+
   return {
     topic,
     setTopic,
@@ -58,5 +64,6 @@ export function usePipeline() {
     agentByName,
     result,
     run,
+    clear,
   };
 }

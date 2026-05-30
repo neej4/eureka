@@ -13,13 +13,13 @@ const LABEL: Record<AgentKey, string> = {
 function statusClasses(status: AgentStatus["status"]) {
   switch (status) {
     case "pending":
-      return "bg-zinc-900/40 text-zinc-300 border-zinc-800";
+      return "bg-[var(--card)] text-[var(--muted)] border-[var(--border)]";
     case "running":
-      return "bg-amber-500/15 text-amber-200 border-amber-500/30 animate-pulse";
+      return "bg-[var(--hover)] text-[var(--active)] border-dashed border-[var(--active)] animate-pulse";
     case "completed":
-      return "bg-emerald-500/15 text-emerald-200 border-emerald-500/30";
+      return "bg-[var(--hover)] text-[var(--active)] border-[var(--border)]";
     case "failed":
-      return "bg-rose-500/15 text-rose-200 border-rose-500/30";
+      return "bg-[var(--card)] text-[var(--err)] border-[var(--err)]";
   }
 }
 

@@ -10,8 +10,8 @@ export function IdeaList(props: {
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/30 p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.02)_inset]">
-      <div className="mb-3 text-sm font-semibold text-zinc-50">Ranked Ideas</div>
+    <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow)]">
+      <div className="mb-3 text-sm font-semibold text-[var(--active)]">Ranked Ideas</div>
       <div className="flex flex-col gap-2">
         {props.ideas.map((idea) => {
           const isSelected = props.selectedId === idea.id;
@@ -23,18 +23,18 @@ export function IdeaList(props: {
               className={[
                 "w-full rounded-md border px-3 py-3 text-left",
                 isSelected
-                  ? "border-emerald-500/30 bg-emerald-500/10"
-                  : "border-zinc-800 bg-zinc-950/20 hover:bg-zinc-900/40",
+                  ? "border-[var(--active)] bg-[var(--hover)]"
+                  : "border-[var(--border)] bg-[var(--bg)] hover:bg-[var(--hover)]",
               ].join(" ")}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-zinc-50">{idea.title}</div>
-                  <div className="line-clamp-2 text-xs text-zinc-400">{idea.description}</div>
+                  <div className="truncate text-sm font-semibold text-[var(--active)]">{idea.title}</div>
+                  <div className="line-clamp-2 text-xs text-[var(--muted)]">{idea.description}</div>
                 </div>
                 <div className="shrink-0 text-right">
-                  <div className="text-xs text-zinc-500">score</div>
-                  <div className="text-lg font-bold text-zinc-50">{combinedScore(idea)}</div>
+                  <div className="text-xs text-[var(--muted)]">score</div>
+                  <div className="text-lg font-bold text-[var(--active)]">{combinedScore(idea)}</div>
                 </div>
               </div>
             </button>
