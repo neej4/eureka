@@ -133,15 +133,7 @@ async def stream_pipeline(pipeline_id: str):
 
 async def generate_stream(pipeline_id: str):
     orchestrator = orchestrators[pipeline_id]
-    
-    async def run_and_stream():
-        try:
-            await orchestrator.run()
-        except Exception as e:
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
-    
-    stream_task = asyncio.create_task(run_and_stream())
-    
+
     while True:
         status = orchestrator.get_status()
         
@@ -157,6 +149,15 @@ async def generate_stream(pipeline_id: str):
         
         yield f"data: {json.dumps(event)}\n\n"
         
+        if status.status == "failed":
+            failed_message = None
+            for a in status.agents:
+                if a.status == "failed":
+                    failed_message = a.message
+                    break
+            yield f"data: {json.dumps({'type': 'error', 'message': failed_message or 'Pipeline failed'})}\n\n"
+            break
+
         if status.status == "completed":
             result = orchestrator._generate_result()
             result_event = {
@@ -167,11 +168,6 @@ async def generate_stream(pipeline_id: str):
             break
         
         await asyncio.sleep(0.5)
-    
-    try:
-        await stream_task
-    except:
-        pass
 
 @app.get("/api/pipeline/{pipeline_id}/status")
 async def get_pipeline_status(pipeline_id: str):
@@ -223,7 +219,7 @@ async def reset_cache():
 
 @app.get("/api/cache/stats")
 async def get_cache_stats():
-    from cache import agent_cache_instance
+    from .cache import agent_cache_instance
     return agent_cache_instance.get_stats()
 
 if __name__ == "__main__":
