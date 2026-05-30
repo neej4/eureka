@@ -1,30 +1,32 @@
-import type { AgentName, PipelineEvent } from "../../../shared/types";
+import type { AgentStatus } from "../../../shared/types";
 
-const LABEL: Record<AgentName, string> = {
+type AgentKey = AgentStatus["agent"];
+
+const LABEL: Record<AgentKey, string> = {
   scout: "Scout",
-  gap_analyst: "Gap",
+  "gap-analyst": "Gap",
   innovator: "Innovator",
   critic: "Critic",
-  coherence: "Coherence",
+  "coherence-validator": "Coherence",
 };
 
-function statusClasses(status: PipelineEvent["status"]) {
+function statusClasses(status: AgentStatus["status"]) {
   switch (status) {
     case "pending":
-      return "bg-slate-100 text-slate-700 border-slate-200";
+      return "bg-[var(--card)] text-[var(--muted)] border-[var(--border)]";
     case "running":
-      return "bg-amber-100 text-amber-900 border-amber-200 animate-pulse";
+      return "bg-[var(--hover)] text-[var(--active)] border-dashed border-[var(--active)] animate-pulse";
     case "completed":
-      return "bg-emerald-100 text-emerald-900 border-emerald-200";
+      return "bg-[var(--hover)] text-[var(--active)] border-[var(--border)]";
     case "failed":
-      return "bg-rose-100 text-rose-900 border-rose-200";
+      return "bg-[var(--card)] text-[var(--err)] border-[var(--err)]";
   }
 }
 
-export function PipelineStatus(props: { events: PipelineEvent[] }) {
+export function PipelineStatus(props: { agents: AgentStatus[] }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {props.events.map((ev) => (
+      {props.agents.map((ev) => (
         <div
           key={ev.agent}
           className={[
@@ -39,4 +41,3 @@ export function PipelineStatus(props: { events: PipelineEvent[] }) {
     </div>
   );
 }
-
