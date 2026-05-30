@@ -2,7 +2,7 @@ import httpx
 import asyncio
 import hashlib
 from typing import List
-from models import Paper
+from ..models import Paper
 
 FALLBACK_PAPERS = [
     {

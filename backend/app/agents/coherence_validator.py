@@ -1,6 +1,6 @@
 import random
 from typing import List
-from models import Idea, Paper
+from ..models import Idea, Paper
 
 def coherence_validator_agent(ideas: List[Idea], papers: List[Paper]) -> List[Idea]:
     validated_ideas = []

@@ -1,6 +1,6 @@
 import random
 from typing import List
-from models import Idea
+from ..models import Idea
 
 def critic_agent(ideas: List[Idea]) -> List[Idea]:
     scored_ideas = []

@@ -8,7 +8,7 @@ import hashlib
 import json
 from datetime import datetime
 
-from orchestrator import PipelineOrchestrator, orchestrators
+from .orchestrator import PipelineOrchestrator, orchestrators
 
 app = FastAPI(title="Eureka API", version="1.0.0")
 
@@ -217,7 +217,7 @@ async def human_override(idea_id: str, override: HumanOverrideInput):
 
 @app.post("/api/cache/reset")
 async def reset_cache():
-    from cache import agent_cache_instance
+    from .cache import agent_cache_instance
     agent_cache_instance.reset()
     return {"status": "success", "message": "Cache reset successfully"}
 
