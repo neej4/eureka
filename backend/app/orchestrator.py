@@ -45,7 +45,8 @@ class PipelineOrchestrator:
     
     async def _run_scout(self):
         self.status["scout"].status = "running"
-        yield_event("scout", "running", "Fetching papers from arXiv...")
+        self.status["scout"].message = f"Analyzing recent papers for topic: {self.topic} ..."
+        yield_event("scout", "running", self.status["scout"].message)
         
         cached_result = agent_cache_instance.get("scout", self.topic)
         
@@ -53,8 +54,8 @@ class PipelineOrchestrator:
             self.papers = [Paper(**p) for p in cached_result]
             self.cached = True
             self.status["scout"].status = "completed"
-            self.status["scout"].message = f"Retrieved {len(self.papers)} papers from cache"
-            yield_event("scout", "completed", f"Retrieved {len(self.papers)} papers (from cache)")
+            self.status["scout"].message = f"Collected {len(self.papers)} papers (source: cache)."
+            yield_event("scout", "completed", self.status["scout"].message)
         else:
             await asyncio.sleep(1.5)
             
@@ -63,20 +64,22 @@ class PipelineOrchestrator:
             agent_cache_instance.set("scout", self.topic, [p.dict() for p in self.papers])
             
             self.status["scout"].status = "completed"
-            self.status["scout"].message = f"Retrieved {len(self.papers)} papers"
-            yield_event("scout", "completed", f"Retrieved {len(self.papers)} papers")
+            self.status["scout"].message = f"Collected {len(self.papers)} papers (source: live)."
+            yield_event("scout", "completed", self.status["scout"].message)
     
     async def _run_gap_analyst(self):
         self.status["gap-analyst"].status = "running"
-        yield_event("gap-analyst", "running", "Analyzing research gaps...")
+        self.status["gap-analyst"].message = "Clustering papers to surface underexplored intersections ..."
+        yield_event("gap-analyst", "running", self.status["gap-analyst"].message)
         
         cached_result = agent_cache_instance.get("gap-analyst", [p.dict() for p in self.papers])
         
         if cached_result:
             self.clusters = [Cluster(**c) for c in cached_result]
             self.status["gap-analyst"].status = "completed"
-            self.status["gap-analyst"].message = f"Identified {len(self.clusters)} clusters (from cache)"
-            yield_event("gap-analyst", "completed", f"Identified {len(self.clusters)} clusters (from cache)")
+            white_spaces = sum(1 for c in self.clusters if c.status == "white_space")
+            self.status["gap-analyst"].message = f"Built {len(self.clusters)} clusters, found {white_spaces} white spaces (source: cache)."
+            yield_event("gap-analyst", "completed", self.status["gap-analyst"].message)
         else:
             await asyncio.sleep(1.5)
             
@@ -87,12 +90,13 @@ class PipelineOrchestrator:
             
             white_spaces = sum(1 for c in self.clusters if c.status == "white_space")
             self.status["gap-analyst"].status = "completed"
-            self.status["gap-analyst"].message = f"Identified {white_spaces} white spaces"
-            yield_event("gap-analyst", "completed", f"Identified {len(self.clusters)} clusters, {white_spaces} white spaces")
+            self.status["gap-analyst"].message = f"Built {len(self.clusters)} clusters, found {white_spaces} white spaces."
+            yield_event("gap-analyst", "completed", self.status["gap-analyst"].message)
     
     async def _run_innovator(self):
         self.status["innovator"].status = "running"
-        yield_event("innovator", "running", "Generating breakthrough ideas...")
+        self.status["innovator"].message = "Synthesizing breakthrough ideas grounded in the cluster structure ..."
+        yield_event("innovator", "running", self.status["innovator"].message)
         
         cached_result = agent_cache_instance.get("innovator", {
             "clusters": [c.dict() for c in self.clusters],
@@ -102,8 +106,8 @@ class PipelineOrchestrator:
         if cached_result:
             self.ideas = [Idea(**i) for i in cached_result]
             self.status["innovator"].status = "completed"
-            self.status["innovator"].message = f"Generated {len(self.ideas)} ideas (from cache)"
-            yield_event("innovator", "completed", f"Generated {len(self.ideas)} ideas (from cache)")
+            self.status["innovator"].message = f"Generated {len(self.ideas)} ideas (source: cache)."
+            yield_event("innovator", "completed", self.status["innovator"].message)
         else:
             await asyncio.sleep(2)
             
@@ -115,20 +119,21 @@ class PipelineOrchestrator:
             }, [i.dict() for i in self.ideas])
             
             self.status["innovator"].status = "completed"
-            self.status["innovator"].message = f"Generated {len(self.ideas)} ideas"
-            yield_event("innovator", "completed", f"Generated {len(self.ideas)} ideas")
+            self.status["innovator"].message = f"Generated {len(self.ideas)} ideas."
+            yield_event("innovator", "completed", self.status["innovator"].message)
     
     async def _run_critic(self):
         self.status["critic"].status = "running"
-        yield_event("critic", "running", "Scoring and filtering ideas...")
+        self.status["critic"].message = "Scoring ideas for novelty/feasibility and filtering weak candidates ..."
+        yield_event("critic", "running", self.status["critic"].message)
         
         cached_result = agent_cache_instance.get("critic", [i.dict() for i in self.ideas])
         
         if cached_result:
             self.ideas = [Idea(**i) for i in cached_result]
             self.status["critic"].status = "completed"
-            self.status["critic"].message = f"Scored {len(self.ideas)} ideas (from cache)"
-            yield_event("critic", "completed", f"Scored {len(self.ideas)} ideas (from cache)")
+            self.status["critic"].message = f"Scored {len(self.ideas)} ideas (source: cache)."
+            yield_event("critic", "completed", self.status["critic"].message)
         else:
             await asyncio.sleep(1.5)
             
@@ -138,12 +143,13 @@ class PipelineOrchestrator:
                                     [i.dict() for i in self.ideas])
             
             self.status["critic"].status = "completed"
-            self.status["critic"].message = f"Kept {len(self.ideas)} ideas after filtering"
-            yield_event("critic", "completed", f"Scored {len(self.ideas)} ideas")
+            self.status["critic"].message = f"Scored {len(self.ideas)} ideas and ranked the strongest candidates."
+            yield_event("critic", "completed", self.status["critic"].message)
     
     async def _run_coherence_validator(self):
         self.status["coherence-validator"].status = "running"
-        yield_event("coherence-validator", "running", "Validating idea coherence...")
+        self.status["coherence-validator"].message = "Validating coherence and summarizing ROI assumptions ..."
+        yield_event("coherence-validator", "running", self.status["coherence-validator"].message)
         
         cached_result = agent_cache_instance.get("coherence-validator", {
             "ideas": [i.dict() for i in self.ideas],
@@ -153,8 +159,8 @@ class PipelineOrchestrator:
         if cached_result:
             self.ideas = [Idea(**i) for i in cached_result]
             self.status["coherence-validator"].status = "completed"
-            self.status["coherence-validator"].message = f"Validated {len(self.ideas)} ideas (from cache)"
-            yield_event("coherence-validator", "completed", f"Validated {len(self.ideas)} ideas (from cache)")
+            self.status["coherence-validator"].message = f"Validated {len(self.ideas)} ideas (source: cache)."
+            yield_event("coherence-validator", "completed", self.status["coherence-validator"].message)
         else:
             await asyncio.sleep(1.5)
             
@@ -166,8 +172,8 @@ class PipelineOrchestrator:
             }, [i.dict() for i in self.ideas])
             
             self.status["coherence-validator"].status = "completed"
-            self.status["coherence-validator"].message = f"All ideas validated"
-            yield_event("coherence-validator", "completed", f"Validated {len(self.ideas)} ideas")
+            self.status["coherence-validator"].message = f"Validated {len(self.ideas)} ideas and computed pipeline ROI summary."
+            yield_event("coherence-validator", "completed", self.status["coherence-validator"].message)
     
     def _generate_result(self) -> PipelineResult:
         duration = (datetime.now() - self.started_at).total_seconds()

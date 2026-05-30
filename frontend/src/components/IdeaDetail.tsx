@@ -23,6 +23,7 @@ function coherenceClasses(score: number) {
 export function IdeaDetail(props: {
   idea: Idea | null;
   onOverride?: (ideaId: string, input: { novelty_override?: number; feasibility_override?: number }) => Promise<Idea>;
+  variant?: "panel" | "embedded";
 }) {
   if (!props.idea) {
     return (
@@ -34,6 +35,7 @@ export function IdeaDetail(props: {
   }
 
   const idea = props.idea;
+  const variant = props.variant ?? "panel";
   const [noveltyOverride, setNoveltyOverride] = useState<number>(idea.human_novelty_override ?? idea.novelty_score);
   const [feasibilityOverride, setFeasibilityOverride] = useState<number>(
     idea.human_feasibility_override ?? idea.feasibility_score,
@@ -51,8 +53,13 @@ export function IdeaDetail(props: {
     return noveltyOverride !== baseNovelty || feasibilityOverride !== baseFeas;
   }, [feasibilityOverride, idea, noveltyOverride]);
 
+  const wrapperClass =
+    variant === "embedded"
+      ? "min-h-0 overflow-y-auto"
+      : "h-full min-h-0 overflow-y-auto rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow)]";
+
   return (
-    <div className="rounded-[6px] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow)]">
+    <div className={wrapperClass}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-[var(--active)]">{idea.title}</div>

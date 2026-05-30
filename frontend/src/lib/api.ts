@@ -30,6 +30,37 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+export type ChatAgent = "scout" | "gap-analyst" | "innovator" | "critic" | "coherence-validator";
+export type ChatMessage = { role: "user" | "assistant"; content: string };
+
+export async function chat(
+  agent: ChatAgent,
+  message: string,
+  history: ChatMessage[],
+): Promise<{ reply: string }> {
+  if (USE_MOCK) {
+    const prefix =
+      agent === "scout"
+        ? "Scout"
+        : agent === "gap-analyst"
+          ? "Gap Analyst"
+          : agent === "innovator"
+            ? "Innovator"
+            : agent === "critic"
+              ? "Critic"
+              : "Coherence Validator";
+    return {
+      reply: `${prefix}: Aku bisa bantu breakdown topik ini jadi langkah riset dan eksperimen cepat.\n\nPertanyaan kamu: "${message}"`,
+    };
+  }
+
+  return fetchJson<{ reply: string }>("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ agent, message, history }),
+  });
+}
+
 export async function startPipeline(topic: string): Promise<StartPipelineResponse> {
   if (USE_MOCK) {
     const pipeline_id = Math.random().toString(16).slice(2, 10);
