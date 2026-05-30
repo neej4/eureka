@@ -24,14 +24,14 @@ export function InputBar(props: {
     >
       <div className="flex gap-2">
         <input
-          className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
+          className="flex-1 rounded-md border border-zinc-800 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-emerald-400/70"
           value={props.topic}
           onChange={(e) => props.onTopicChange(e.target.value)}
           placeholder="Contoh: agentic RAG evaluation untuk paper scientific discovery"
           disabled={props.disabled}
         />
         <button
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          className="rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-zinc-950 disabled:opacity-50"
           type="submit"
           disabled={props.disabled || !!topicError}
         >
@@ -39,11 +39,10 @@ export function InputBar(props: {
         </button>
       </div>
       {topicError ? (
-        <div className="text-xs text-slate-500">{topicError}</div>
+        <div className="text-xs text-zinc-400">{topicError}</div>
       ) : (
-        <div className="text-xs text-slate-500">Tekan Run untuk memulai pipeline (mode mock).</div>
+        <div className="text-xs text-zinc-400">Tekan Run untuk memulai pipeline (mode mock).</div>
       )}
     </form>
   );
 }
-
